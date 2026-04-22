@@ -1,0 +1,94 @@
+﻿spring:
+  application:
+    name: auth-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/auth_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+    open-in-view: false
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+      timeout: ${SPRING_DATA_REDIS_TIMEOUT:2s}
+
+server:
+  port: ${SERVER_PORT:8081}
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${EUREKA_DEFAULT_ZONE:http://localhost:8761/eureka/}
+  instance:
+    prefer-ip-address: true
+
+feign:
+  client:
+    config:
+      user-service:
+        connectTimeout: ${FEIGN_USER_SERVICE_CONNECT_TIMEOUT:5000}
+        readTimeout: ${FEIGN_USER_SERVICE_READ_TIMEOUT:5000}
+        loggerLevel: basic
+  circuitbreaker:
+    enabled: ${FEIGN_CIRCUITBREAKER_ENABLED:false}
+
+resilience4j:
+  retry:
+    instances:
+      userServiceRetry:
+        maxAttempts: 3
+        waitDuration: 5s
+        enableExponentialBackoff: false
+        retryExceptions:
+          - feign.RetryableException
+          - feign.FeignException$FeignServerException
+          - java.net.SocketTimeoutException
+          - java.net.ConnectException
+          - java.io.IOException
+        ignoreExceptions:
+          - iuh.fit.shared.error.BusinessException
+          - feign.FeignException$FeignClientException
+
+services:
+  user-service:
+    url: ${USER_SERVICE_URL:http://localhost:8082}
+    internal-auth:
+      header-name: ${USER_SERVICE_INTERNAL_AUTH_HEADER_NAME:X-Internal-Api-Key}
+      api-key: ${USER_SERVICE_INTERNAL_AUTH_API_KEY:change-me-in-prod}
+
+auth:
+  jwt:
+    issuer: ${AUTH_JWT_ISSUER:auth-service}
+    secret: ${AUTH_JWT_SECRET:NUQyuZhoBd6u6O6dAP30Rgu5bqv5TdzpKreGhZGExSaHXEQIM3kicw9uptSaJP9Q}
+    access-token-expiration: ${AUTH_JWT_ACCESS_TOKEN_EXPIRATION:15m}
+    refresh-token-expiration: ${AUTH_JWT_REFRESH_TOKEN_EXPIRATION:7d}
+  redis:
+    refresh-token-key-prefix: ${AUTH_REDIS_REFRESH_TOKEN_KEY_PREFIX:refresh:}
+  cookie:
+    refresh-token-name: ${AUTH_COOKIE_REFRESH_TOKEN_NAME:refreshTokenId}
+    secure: ${AUTH_COOKIE_SECURE:true}
+    http-only: ${AUTH_COOKIE_HTTP_ONLY:true}
+    same-site: ${AUTH_COOKIE_SAME_SITE:Strict}
+    path: ${AUTH_COOKIE_PATH:/api/v1/auth}
+    domain: ${AUTH_COOKIE_DOMAIN:}
+  rate-limit:
+    login-register:
+      enabled: ${AUTH_RATE_LIMIT_LOGIN_REGISTER_ENABLED:true}
+      capacity: ${AUTH_RATE_LIMIT_LOGIN_REGISTER_CAPACITY:5}
+      refill-tokens: ${AUTH_RATE_LIMIT_LOGIN_REGISTER_REFILL_TOKENS:5}
+      refill-duration: ${AUTH_RATE_LIMIT_LOGIN_REGISTER_REFILL_DURATION:1m}
+      key-prefix: ${AUTH_RATE_LIMIT_LOGIN_REGISTER_KEY_PREFIX:auth:rate-limit:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
