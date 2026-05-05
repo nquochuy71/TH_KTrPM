@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: redis-data-grid
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    networks:
+      - flash-sale-net
+
+networks:
+  flash-sale-net:
+    driver: bridge
